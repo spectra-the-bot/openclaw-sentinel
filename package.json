@@ -21,12 +21,18 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "lint": "tsc --noEmit",
     "format": "oxfmt --write .",
-    "format:check": "oxfmt --check ."
+    "format:check": "oxfmt --check .",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
   },
   "dependencies": {
     "re2-wasm": "^1.0.2",
@@ -34,6 +40,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
     "@types/node": "^24.0.0",
     "@types/ws": "^8.5.13",
     "oxfmt": "^0.36.0",
