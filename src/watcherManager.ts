@@ -9,7 +9,11 @@ import { sseStrategy } from './strategies/sse.js';
 import { websocketStrategy } from './strategies/websocket.js';
 import { GatewayWebhookDispatcher, SentinelConfig, WatcherDefinition, WatcherRuntimeState } from './types.js';
 
-const backoff = (base: number, max: number, failures: number) => Math.min(max, base * (2 ** failures));
+const backoff = (base: number, max: number, failures: number) => {
+  const raw = Math.min(max, base * (2 ** failures));
+  const jitter = Math.floor(raw * 0.25 * (Math.random() * 2 - 1));
+  return Math.max(base, raw + jitter);
+};
 
 export class WatcherManager {
   private watchers = new Map<string, WatcherDefinition>();
@@ -80,6 +84,7 @@ export class WatcherManager {
       this.runtime[id] = rt;
       const delay = backoff(watcher.retry.baseMs, watcher.retry.maxMs, rt.consecutiveFailures);
       if (rt.consecutiveFailures <= watcher.retry.maxRetries && watcher.enabled) {
+        this.stops.delete(id);
         setTimeout(() => this.startWatcher(id).catch(() => undefined), delay);
       }
       await this.persist();
