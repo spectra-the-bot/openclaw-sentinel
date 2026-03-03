@@ -36,18 +36,18 @@ npm i @coffeexdev/openclaw-sentinel
 ## Quick usage
 
 ```ts
-import { createSentinelPlugin } from '@coffeexdev/openclaw-sentinel';
+import { createSentinelPlugin } from "@coffeexdev/openclaw-sentinel";
 
 const sentinel = createSentinelPlugin({
-  allowedHosts: ['api.github.com', 'api.coingecko.com'],
-  localDispatchBase: 'http://127.0.0.1:4389'
+  allowedHosts: ["api.github.com", "api.coingecko.com"],
+  localDispatchBase: "http://127.0.0.1:4389",
 });
 
 await sentinel.init();
 sentinel.register({
   registerTool(name, handler) {
     // gateway tool registry hook
-  }
+  },
 });
 ```
 
@@ -93,12 +93,15 @@ openclaw-sentinel audit
 ## Example scenarios
 
 ### Sentinel Poker feed monitoring
+
 Watch API changes and fire internal webhook events for orchestration.
 
 ### Blockchain price watch
+
 `http-poll` against `api.coingecko.com`, `gt/lte/changed` conditions, routed to local webhook.
 
 ### CI monitoring
+
 `sse` or `http-long-poll` against approved CI host endpoint; fire standardized internal events.
 
 ## Security model

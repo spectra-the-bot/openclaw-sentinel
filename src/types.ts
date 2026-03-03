@@ -1,5 +1,16 @@
-export type Strategy = 'http-poll' | 'websocket' | 'sse' | 'http-long-poll';
-export type Operator = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'exists' | 'absent' | 'contains' | 'matches' | 'changed';
+export type Strategy = "http-poll" | "websocket" | "sse" | "http-long-poll";
+export type Operator =
+  | "eq"
+  | "neq"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "exists"
+  | "absent"
+  | "contains"
+  | "matches"
+  | "changed";
 
 export interface Condition {
   path: string;
@@ -25,12 +36,12 @@ export interface WatcherDefinition {
   enabled: boolean;
   strategy: Strategy;
   endpoint: string;
-  method?: 'GET' | 'POST';
+  method?: "GET" | "POST";
   headers?: Record<string, string>;
   body?: string;
   intervalMs?: number;
   timeoutMs?: number;
-  match: 'all' | 'any';
+  match: "all" | "any";
   conditions: Condition[];
   fire: FireConfig;
   retry: RetryPolicy;

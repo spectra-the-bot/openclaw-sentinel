@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { renderTemplate } from '../src/template.js';
+import { describe, it, expect } from "vitest";
+import { renderTemplate } from "../src/template.js";
 
-describe('template', () => {
-  it('includes unresolved placeholder in error', () => {
-    expect(() => renderTemplate({ x: '${payload.missing}' }, { payload: {} })).toThrow('Template placeholder unresolved: ${payload.missing}');
+describe("template", () => {
+  it("includes unresolved placeholder in error", () => {
+    expect(() => renderTemplate({ x: "${payload.missing}" }, { payload: {} })).toThrow(
+      "Template placeholder unresolved: ${payload.missing}",
+    );
   });
 });

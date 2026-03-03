@@ -1,40 +1,44 @@
-import { registerSentinelControl } from './tool.js';
-import { WatcherManager } from './watcherManager.js';
-import { SentinelConfig } from './types.js';
+import { registerSentinelControl } from "./tool.js";
+import { WatcherManager } from "./watcherManager.js";
+import { SentinelConfig } from "./types.js";
 
 export function createSentinelPlugin(overrides?: Partial<SentinelConfig>) {
   const config: SentinelConfig = {
-    allowedHosts: ['api.github.com', 'api.coingecko.com', 'example.com'],
-    localDispatchBase: 'http://127.0.0.1:18789',
+    allowedHosts: ["api.github.com", "api.coingecko.com", "example.com"],
+    localDispatchBase: "http://127.0.0.1:18789",
     dispatchAuthToken: process.env.SENTINEL_DISPATCH_TOKEN,
     limits: {
       maxWatchersTotal: 200,
       maxWatchersPerSkill: 20,
       maxConditionsPerWatcher: 25,
-      maxIntervalMsFloor: 1000
+      maxIntervalMsFloor: 1000,
     },
-    ...overrides
+    ...overrides,
   };
 
   const manager = new WatcherManager(config, {
     async dispatch(path, body) {
-      const headers: Record<string, string> = { 'content-type': 'application/json' };
-      if (config.dispatchAuthToken) headers['authorization'] = `Bearer ${config.dispatchAuthToken}`;
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (config.dispatchAuthToken) headers["authorization"] = `Bearer ${config.dispatchAuthToken}`;
       await fetch(`${config.localDispatchBase}${path}`, {
-        method: 'POST',
+        method: "POST",
         headers,
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       });
-    }
+    },
   });
 
   return {
     manager,
-    async init() { await manager.init(); },
-    register(api: { registerTool: (name: string, handler: (input: unknown) => Promise<unknown>) => void }) {
+    async init() {
+      await manager.init();
+    },
+    register(api: {
+      registerTool: (name: string, handler: (input: unknown) => Promise<unknown>) => void;
+    }) {
       registerSentinelControl(api.registerTool, manager);
-    }
+    },
   };
 }
 
-export * from './types.js';
+export * from "./types.js";

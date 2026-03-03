@@ -1,5 +1,5 @@
-import WebSocket from 'ws';
-import { StrategyHandler } from './base.js';
+import WebSocket from "ws";
+import { StrategyHandler } from "./base.js";
 
 export const websocketStrategy: StrategyHandler = async (watcher, onPayload, onError) => {
   let active = true;
@@ -8,7 +8,7 @@ export const websocketStrategy: StrategyHandler = async (watcher, onPayload, onE
   const connect = () => {
     ws = new WebSocket(watcher.endpoint, { headers: watcher.headers });
 
-    ws.on('message', async (data) => {
+    ws.on("message", async (data) => {
       if (!active) return;
       const text = data.toString();
       try {
@@ -18,12 +18,12 @@ export const websocketStrategy: StrategyHandler = async (watcher, onPayload, onE
       }
     });
 
-    ws.on('error', (err) => {
+    ws.on("error", (err) => {
       if (!active) return;
       void onError(err);
     });
 
-    ws.on('close', (code) => {
+    ws.on("close", (code) => {
       if (!active) return;
       void onError(new Error(`websocket closed: ${code}`));
     });
