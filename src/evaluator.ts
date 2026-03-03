@@ -8,7 +8,7 @@ function getPath(obj: unknown, path: string): unknown {
 function safeRegexTest(pattern: string, input: string): boolean {
   if (pattern.length > 256) throw new Error('Regex pattern too long');
   // basic catastrophic pattern guard
-  if (/(\+|\*|\{\d+,?\d*\})\s*(\)|\]|\}|\w)/.test(pattern) && /\([^)]*\|[^)]*\)/.test(pattern)) {
+  if (/\([^)]*\|[^)]*\)[+*{]/.test(pattern) || /\([^)]*\|[^)]*\)/.test(pattern) && /[+*{]/.test(pattern)) {
     throw new Error('Potentially unsafe regex pattern rejected');
   }
   return new RegExp(pattern).test(input);
