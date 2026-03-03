@@ -28,9 +28,28 @@ export class WatcherManager {
 
   async init(): Promise<void> {
     const state = await loadState(this.statePath);
-    state.watchers.forEach((w) => this.watchers.set(w.id, w));
     this.runtime = state.runtime;
-    for (const watcher of state.watchers.filter((w) => w.enabled)) await this.startWatcher(watcher.id);
+
+    for (const rawWatcher of state.watchers) {
+      try {
+        const watcher = validateWatcherDefinition(rawWatcher);
+        assertHostAllowed(this.config, watcher.endpoint);
+        assertWatcherLimits(this.config, this.list(), watcher);
+        this.watchers.set(watcher.id, watcher);
+      } catch (err) {
+        this.runtime[rawWatcher.id] = {
+          id: rawWatcher.id,
+          consecutiveFailures: (this.runtime[rawWatcher.id]?.consecutiveFailures ?? 0) + 1,
+          lastError: `Invalid persisted watcher: ${String((err as any)?.message ?? err)}`,
+          lastResponseAt: this.runtime[rawWatcher.id]?.lastResponseAt,
+          lastEvaluated: this.runtime[rawWatcher.id]?.lastEvaluated,
+          lastPayloadHash: this.runtime[rawWatcher.id]?.lastPayloadHash,
+          lastPayload: this.runtime[rawWatcher.id]?.lastPayload
+        };
+      }
+    }
+
+    for (const watcher of this.list().filter((w) => w.enabled)) await this.startWatcher(watcher.id);
   }
 
   async create(input: unknown): Promise<WatcherDefinition> {
