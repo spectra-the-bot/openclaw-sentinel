@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
+import os from 'node:os';
+import path from 'node:path';
 import { createSentinelPlugin } from '../src/index.js';
 
 describe('dispatch integration', () => {
@@ -23,6 +25,7 @@ describe('dispatch integration', () => {
         allowedHosts: ['api.github.com'],
         localDispatchBase: 'http://127.0.0.1:18789',
         dispatchAuthToken: 'test-token',
+        stateFilePath: path.join(os.tmpdir(), `sentinel-dispatch-test-${Date.now()}-${Math.random()}.json`),
         limits: { maxWatchersTotal: 10, maxWatchersPerSkill: 10, maxConditionsPerWatcher: 10, maxIntervalMsFloor: 1 }
       });
 
