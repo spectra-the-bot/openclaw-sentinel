@@ -1,5 +1,35 @@
 import crypto from 'node:crypto';
+import { createRequire } from 'node:module';
 import { Condition } from './types.js';
+
+const require = createRequire(import.meta.url);
+
+type RegexCtor = new (pattern: string, flags?: string) => { test(input: string): boolean };
+let cachedRegexCtor: RegexCtor | null = null;
+
+function getSafeRegexCtor(): RegexCtor {
+  if (cachedRegexCtor) return cachedRegexCtor;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const re2Mod = require('re2');
+    const RE2Ctor = (re2Mod?.default ?? re2Mod) as RegexCtor;
+    cachedRegexCtor = RE2Ctor;
+    return cachedRegexCtor;
+  } catch {
+    // fallback below
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const re2Wasm = require('re2-wasm');
+    const RE2Ctor = (re2Wasm?.RE2 ?? re2Wasm?.default ?? re2Wasm) as RegexCtor;
+    cachedRegexCtor = RE2Ctor;
+    return cachedRegexCtor;
+  } catch {
+    throw new Error('No safe regex engine available (re2/re2-wasm)');
+  }
+}
 
 function getPath(obj: unknown, path: string): unknown {
   return path.split('.').reduce((acc: any, part) => acc?.[part], obj as any);
@@ -13,9 +43,13 @@ function safeRegexTest(pattern: string, input: string): boolean {
     throw new Error('Potentially unsafe regex pattern rejected');
   }
   try {
-    return new RegExp(pattern, 'u').test(input);
-  } catch {
-    throw new Error('Invalid regex pattern');
+    const RE2Ctor = getSafeRegexCtor();
+    const flags = 'u';
+    return new RE2Ctor(pattern, flags).test(input);
+  } catch (err) {
+    const msg = String((err as any)?.message ?? err);
+    if (msg.toLowerCase().includes('safe regex engine')) throw err;
+    throw new Error('Invalid or unsupported regex pattern');
   }
 }
 

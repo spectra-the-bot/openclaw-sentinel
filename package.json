@@ -30,8 +30,12 @@
     "node": ">=20"
   },
   "dependencies": {
+    "re2-wasm": "^1.0.2",
     "ws": "^8.18.3",
     "zod": "^3.24.1"
+  },
+  "optionalDependencies": {
+    "re2": "^1.23.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

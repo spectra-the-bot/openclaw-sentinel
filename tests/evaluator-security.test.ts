@@ -12,4 +12,10 @@ describe('evaluator security/changed', () => {
     const cond = { path: 'x', op: 'matches' as const, value: '(a|aa)+' };
     expect(() => evaluateCondition(cond, { x: 'aaaaa' }, {})).toThrow();
   });
+
+  it('matches safely via re2/re2-wasm engine', () => {
+    const cond = { path: 'x', op: 'matches' as const, value: '^a+$' };
+    expect(evaluateCondition(cond, { x: 'aaa' }, {})).toBe(true);
+    expect(evaluateCondition(cond, { x: 'aaab' }, {})).toBe(false);
+  });
 });
