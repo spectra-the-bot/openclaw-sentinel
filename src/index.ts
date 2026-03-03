@@ -18,9 +18,9 @@ export function createSentinelPlugin(overrides?: Partial<SentinelConfig>) {
 
   const manager = new WatcherManager(config, {
     async dispatch(path, body) {
-      const headers: Record<string,string> = { 'content-type': 'application/json' };
-      if (config.dispatchAuthToken) headers['authorization'] = `Bearer `;
-      await fetch(``, {
+      const headers: Record<string, string> = { 'content-type': 'application/json' };
+      if (config.dispatchAuthToken) headers['authorization'] = `Bearer ${config.dispatchAuthToken}`;
+      await fetch(`${config.localDispatchBase}${path}`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body)
