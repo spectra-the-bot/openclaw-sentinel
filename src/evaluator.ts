@@ -5,6 +5,15 @@ function getPath(obj: unknown, path: string): unknown {
   return path.split('.').reduce((acc: any, part) => acc?.[part], obj as any);
 }
 
+function safeRegexTest(pattern: string, input: string): boolean {
+  if (pattern.length > 256) throw new Error('Regex pattern too long');
+  // basic catastrophic pattern guard
+  if (/(\+|\*|\{\d+,?\d*\})\s*(\)|\]|\}|\w)/.test(pattern) && /\([^)]*\|[^)]*\)/.test(pattern)) {
+    throw new Error('Potentially unsafe regex pattern rejected');
+  }
+  return new RegExp(pattern).test(input);
+}
+
 export function evaluateCondition(condition: Condition, payload: unknown, previousPayload: unknown): boolean {
   const current = getPath(payload, condition.path);
   const previous = getPath(previousPayload, condition.path);
@@ -18,7 +27,7 @@ export function evaluateCondition(condition: Condition, payload: unknown, previo
     case 'exists': return current !== undefined && current !== null;
     case 'absent': return current === undefined || current === null;
     case 'contains': return typeof current === 'string' ? current.includes(String(condition.value ?? '')) : Array.isArray(current) ? current.includes(condition.value) : false;
-    case 'matches': return new RegExp(String(condition.value ?? '')).test(String(current ?? ''));
+    case 'matches': return safeRegexTest(String(condition.value ?? ''), String(current ?? ''));
     case 'changed': return JSON.stringify(current) !== JSON.stringify(previous);
     default: return false;
   }
