@@ -1,25 +1,99 @@
-import { z } from "zod";
+import { Type } from "@sinclair/typebox";
+import { Value } from "@sinclair/typebox/value";
 import type { OpenClawPluginConfigSchema } from "openclaw/plugin-sdk";
 
-const limitsSchema = z.object({
-  maxWatchersTotal: z.number().int().positive().default(200),
-  maxWatchersPerSkill: z.number().int().positive().default(20),
-  maxConditionsPerWatcher: z.number().int().positive().default(25),
-  maxIntervalMsFloor: z.number().int().positive().default(1000),
-});
+const LimitsSchema = Type.Object(
+  {
+    maxWatchersTotal: Type.Integer({ minimum: 1 }),
+    maxWatchersPerSkill: Type.Integer({ minimum: 1 }),
+    maxConditionsPerWatcher: Type.Integer({ minimum: 1 }),
+    maxIntervalMsFloor: Type.Integer({ minimum: 1 }),
+  },
+  { additionalProperties: false },
+);
 
-const configZodSchema = z.object({
-  allowedHosts: z.array(z.string()).default([]),
-  localDispatchBase: z.string().url().default("http://127.0.0.1:18789"),
-  dispatchAuthToken: z.string().optional(),
-  stateFilePath: z.string().optional(),
-  limits: limitsSchema.default({}),
-});
+const ConfigSchema = Type.Object(
+  {
+    allowedHosts: Type.Array(Type.String()),
+    localDispatchBase: Type.String({ minLength: 1 }),
+    dispatchAuthToken: Type.Optional(Type.String()),
+    stateFilePath: Type.Optional(Type.String()),
+    limits: Type.Optional(LimitsSchema),
+  },
+  { additionalProperties: false },
+);
+
+function withDefaults(value: Record<string, unknown>): Record<string, unknown> {
+  const limitsIn = (value.limits as Record<string, unknown> | undefined) ?? {};
+
+  return {
+    allowedHosts: Array.isArray(value.allowedHosts) ? value.allowedHosts : [],
+    localDispatchBase:
+      typeof value.localDispatchBase === "string" && value.localDispatchBase.length > 0
+        ? value.localDispatchBase
+        : "http://127.0.0.1:18789",
+    dispatchAuthToken:
+      typeof value.dispatchAuthToken === "string" ? value.dispatchAuthToken : undefined,
+    stateFilePath: typeof value.stateFilePath === "string" ? value.stateFilePath : undefined,
+    limits: {
+      maxWatchersTotal:
+        typeof limitsIn.maxWatchersTotal === "number" ? limitsIn.maxWatchersTotal : 200,
+      maxWatchersPerSkill:
+        typeof limitsIn.maxWatchersPerSkill === "number" ? limitsIn.maxWatchersPerSkill : 20,
+      maxConditionsPerWatcher:
+        typeof limitsIn.maxConditionsPerWatcher === "number"
+          ? limitsIn.maxConditionsPerWatcher
+          : 25,
+      maxIntervalMsFloor:
+        typeof limitsIn.maxIntervalMsFloor === "number" ? limitsIn.maxIntervalMsFloor : 1000,
+    },
+  };
+}
+
+function issue(path: string, message: string) {
+  const segments = path.replace(/^\//, "").split("/").filter(Boolean);
+  return {
+    path: segments,
+    message,
+  };
+}
 
 export const sentinelConfigSchema: OpenClawPluginConfigSchema = {
   safeParse: (value: unknown) => {
     if (value === undefined) return { success: true, data: undefined };
-    return configZodSchema.safeParse(value);
+
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
+      return {
+        success: false,
+        error: { issues: [issue("/", "Config must be an object")] },
+      };
+    }
+
+    const candidate = withDefaults(value as Record<string, unknown>);
+
+    if (!Value.Check(ConfigSchema, candidate)) {
+      const first = [...Value.Errors(ConfigSchema, candidate)][0];
+      return {
+        success: false,
+        error: {
+          issues: [issue(String(first?.path || "/"), String(first?.message || "Invalid config"))],
+        },
+      };
+    }
+
+    // explicit URL validation (TypeBox format validators are not enabled by default)
+    try {
+      new URL(candidate.localDispatchBase as string);
+    } catch {
+      return {
+        success: false,
+        error: {
+          issues: [issue("/localDispatchBase", "Invalid URL")],
+        },
+      };
+    }
+
+    return { success: true, data: candidate };
   },
   jsonSchema: {
     type: "object",
