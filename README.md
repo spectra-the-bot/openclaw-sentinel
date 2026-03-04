@@ -22,6 +22,8 @@ It **does not** execute user-authored code from watcher definitions.
 - Match mode: `all` / `any`
 - Fire templating: substitution-only placeholders, non-Turing-complete
 - Fire route: local internal webhook dispatch path (no outbound fire URL)
+  - defaults to `/hooks/sentinel` when `fire.webhookPath` is omitted
+  - plugin auto-registers `/hooks/sentinel` on startup (idempotent)
 - Persistence: `~/.openclaw/sentinel-state.json`
 - Resource limits and per-skill limits
 - `allowedHosts` endpoint enforcement
@@ -62,7 +64,12 @@ sentinel.register({
   registerTool(name, handler) {
     // gateway tool registry hook
   },
+  registerHttpRoute(route) {
+    // gateway HTTP route registry hook
+  },
 });
+
+// register() auto-registers /hooks/sentinel once (idempotent)
 ```
 
 ## Tool input example (`sentinel_control:create`)
@@ -93,6 +100,9 @@ sentinel.register({
   }
 }
 ```
+
+`fire.webhookPath` is optional. If omitted, Sentinel defaults to `/hooks/sentinel`.
+Keep `webhookPath` when you need a watcher-specific override.
 
 ## CLI
 
