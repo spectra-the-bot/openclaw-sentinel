@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import { Value } from "@sinclair/typebox/value";
-import { WatcherDefinition } from "./types.js";
+import { DEFAULT_SENTINEL_WEBHOOK_PATH, WatcherDefinition } from "./types.js";
 
 const codeyKeyPattern = /(script|code|eval|handler|function|import|require)/i;
 const codeyValuePattern = /(=>|\bfunction\b|\bimport\s+|\brequire\s*\(|\beval\s*\()/i;
@@ -47,7 +47,7 @@ const WatcherSchema = Type.Object(
     conditions: Type.Array(ConditionSchema, { minItems: 1 }),
     fire: Type.Object(
       {
-        webhookPath: Type.String({ pattern: "^/" }),
+        webhookPath: Type.Optional(Type.String({ pattern: "^/" })),
         eventName: Type.String({ minLength: 1 }),
         payloadTemplate: Type.Record(
           Type.String(),
@@ -110,5 +110,12 @@ export function validateWatcherDefinition(input: unknown): WatcherDefinition {
     throw new Error("Invalid watcher definition at /endpoint: Invalid URL");
   }
 
-  return input as WatcherDefinition;
+  const watcher = input as WatcherDefinition;
+  return {
+    ...watcher,
+    fire: {
+      ...watcher.fire,
+      webhookPath: watcher.fire.webhookPath ?? DEFAULT_SENTINEL_WEBHOOK_PATH,
+    },
+  };
 }
