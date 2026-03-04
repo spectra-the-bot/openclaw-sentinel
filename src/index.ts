@@ -1,3 +1,5 @@
+import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import { registerSentinelControl } from "./tool.js";
 import { WatcherManager } from "./watcherManager.js";
 import { SentinelConfig } from "./types.js";
@@ -33,10 +35,8 @@ export function createSentinelPlugin(overrides?: Partial<SentinelConfig>) {
     async init() {
       await manager.init();
     },
-    register(api: {
-      registerTool: (name: string, handler: (input: unknown) => Promise<unknown>) => void;
-    }) {
-      registerSentinelControl(api.registerTool, manager);
+    register(api: OpenClawPluginApi) {
+      registerSentinelControl(api.registerTool.bind(api), manager);
     },
   };
 }
@@ -46,9 +46,8 @@ const sentinelPlugin = {
   id: "openclaw-sentinel",
   name: "OpenClaw Sentinel",
   description: "Secure declarative gateway-native watcher plugin for OpenClaw",
-  register(api: {
-    registerTool: (name: string, handler: (input: unknown) => Promise<unknown>) => void;
-  }) {
+  configSchema: emptyPluginConfigSchema(),
+  register(api: OpenClawPluginApi) {
     const plugin = createSentinelPlugin();
     // Initialize async state, then register tool.
     // Registration is immediate; persisted watchers are started in background.
