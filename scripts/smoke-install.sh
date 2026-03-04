@@ -16,7 +16,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-PNPM_CMD="corepack pnpm"
+PNPM_CMD="pnpm"
 
 TARBALL="$($PNPM_CMD pack --pack-destination . --silent | tail -n 1)"
 
