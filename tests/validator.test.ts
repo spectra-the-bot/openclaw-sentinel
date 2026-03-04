@@ -48,10 +48,23 @@ describe("validator", () => {
         },
         priority: "high",
         deadlineTemplate: "${timestamp}",
+        notificationPayloadMode: "debug",
       },
     });
     expect(watcher.fire.intent).toBe("incident_triage");
     expect(watcher.fire.priority).toBe("high");
+    expect(watcher.fire.notificationPayloadMode).toBe("debug");
+  });
+
+  it("accepts none notification payload mode override", () => {
+    const watcher = validateWatcherDefinition({
+      ...base,
+      fire: {
+        ...base.fire,
+        notificationPayloadMode: "none",
+      },
+    });
+    expect(watcher.fire.notificationPayloadMode).toBe("none");
   });
 
   it("rejects unknown fields", () => {

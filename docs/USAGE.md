@@ -21,6 +21,7 @@ In config, you **must** set `allowedHosts` — no hosts are allowed by default. 
           allowedHosts: ["api.github.com", "api.coingecko.com", "status.example.com"],
           localDispatchBase: "http://127.0.0.1:18789",
           hookSessionKey: "agent:main:main",
+          notificationPayloadMode: "concise",
         },
       },
     },
@@ -137,7 +138,57 @@ You can override with explicit `deliveryTargets` (supports multiple destinations
 
 ---
 
-## 4) One-shot trigger (`fireOnce`)
+## 4) Notification payload modes (global + per-watcher override)
+
+Sentinel always dispatches the callback envelope on match.
+`notificationPayloadMode` only controls whether/how additional `deliveryTargets` messages are sent.
+
+Global options:
+
+- `"notificationPayloadMode": "none"` (suppress delivery-target messages)
+- `"notificationPayloadMode": "concise"` (default relay line only)
+- `"notificationPayloadMode": "debug"` (relay line + `SENTINEL_DEBUG_ENVELOPE_JSON` block)
+
+Per watcher, override under `watcher.fire.notificationPayloadMode`:
+
+```json
+{
+  "action": "create",
+  "watcher": {
+    "id": "status-watch-callback-only",
+    "skillId": "skills.ops",
+    "enabled": true,
+    "strategy": "http-poll",
+    "endpoint": "https://status.example.com/api/health",
+    "intervalMs": 10000,
+    "match": "all",
+    "conditions": [{ "path": "status", "op": "eq", "value": "degraded" }],
+    "fire": {
+      "webhookPath": "/hooks/agent",
+      "eventName": "service_degraded",
+      "notificationPayloadMode": "none",
+      "payloadTemplate": { "event": "${event.name}", "status": "${payload.status}" }
+    },
+    "retry": { "maxRetries": 8, "baseMs": 500, "maxMs": 30000 },
+    "deliveryTargets": [{ "channel": "telegram", "to": "5613673222" }]
+  }
+}
+```
+
+Allowed override values:
+
+- `inherit` (or omitted): use global mode
+- `none`: suppress delivery-target messages for this watcher
+- `concise`: force concise output for this watcher
+- `debug`: force debug envelope for this watcher
+
+Precedence: **watcher override > global setting**.
+
+Migration note: existing installs remain `concise` by default. Use `none` when you want callback-only behavior (including `/hooks/sentinel` wake + LLM loop) without extra delivery-target chat noise.
+
+---
+
+## 5) One-shot trigger (`fireOnce`)
 
 Use `fireOnce: true` to dispatch once and auto-disable:
 
@@ -170,7 +221,7 @@ Use `fireOnce: true` to dispatch once and auto-disable:
 
 ---
 
-## 5) CI run completion monitor
+## 6) CI run completion monitor
 
 ```json
 {
@@ -206,7 +257,7 @@ Use `fireOnce: true` to dispatch once and auto-disable:
 
 ---
 
-## 6) Runtime control actions
+## 7) Runtime control actions
 
 Check status:
 
@@ -228,7 +279,7 @@ Remove:
 
 ---
 
-## 7) Skill integration pattern
+## 8) Skill integration pattern
 
 Typical skill flow:
 

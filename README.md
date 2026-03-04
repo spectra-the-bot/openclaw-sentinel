@@ -32,6 +32,12 @@ Add/update `~/.openclaw/openclaw.json`:
           // Optional: where /hooks/sentinel events are queued in the LLM loop.
           hookSessionKey: "agent:main:main",
 
+          // Optional: payload style for chat notifications sent via deliveryTargets.
+          // "none" suppresses delivery-target message fan-out (callback still fires).
+          // "concise" (default) sends human-friendly relay text only.
+          // "debug" appends a structured sentinel envelope block for diagnostics.
+          // notificationPayloadMode: "concise",
+
           // Optional: bearer token used for dispatch calls back to gateway.
           // Set this to your gateway auth token when gateway auth is enabled.
           // dispatchAuthToken: "<gateway-token>"
@@ -205,6 +211,91 @@ It **does not** execute user-authored code from watcher definitions.
 ```
 
 `deliveryTargets` is optional. If omitted on `create`, Sentinel infers a default target from the current tool/session context (channel + current peer).
+
+## Notification payload delivery modes
+
+Sentinel always dispatches the callback envelope to `localDispatchBase + webhookPath` on match.
+`notificationPayloadMode` only controls **additional fan-out messages** to `deliveryTargets`.
+
+Global mode options:
+
+- `none`: suppress delivery-target notification messages (callback dispatch still occurs)
+- `concise` (default): send short relay text only
+- `debug`: send relay text plus `SENTINEL_DEBUG_ENVELOPE_JSON` block
+
+### 1) Global notifications disabled (`none`)
+
+```json5
+{
+  sentinel: {
+    allowedHosts: ["api.github.com"],
+    notificationPayloadMode: "none",
+  },
+}
+```
+
+### 2) Global concise relay (default)
+
+```json5
+{
+  sentinel: {
+    allowedHosts: ["api.github.com"],
+    notificationPayloadMode: "concise",
+  },
+}
+```
+
+### 3) Global debug diagnostics
+
+```json5
+{
+  sentinel: {
+    allowedHosts: ["api.github.com"],
+    notificationPayloadMode: "debug",
+  },
+}
+```
+
+In debug mode, delivery notifications include the same concise relay line plus a `SENTINEL_DEBUG_ENVELOPE_JSON` block for diagnostics.
+
+### 4) Per-watcher override (`watcher.fire.notificationPayloadMode`)
+
+```json
+{
+  "action": "create",
+  "watcher": {
+    "id": "status-watch",
+    "skillId": "skills.ops",
+    "enabled": true,
+    "strategy": "http-poll",
+    "endpoint": "https://status.example.com/api/health",
+    "intervalMs": 10000,
+    "match": "all",
+    "conditions": [{ "path": "status", "op": "eq", "value": "degraded" }],
+    "fire": {
+      "webhookPath": "/hooks/agent",
+      "eventName": "service_degraded",
+      "notificationPayloadMode": "none",
+      "payloadTemplate": { "event": "${event.name}", "status": "${payload.status}" }
+    },
+    "retry": { "maxRetries": 5, "baseMs": 250, "maxMs": 5000 }
+  }
+}
+```
+
+Allowed values:
+
+- `inherit` (or omitted): follow global `notificationPayloadMode`
+- `none`: suppress delivery-target notification messages for this watcher
+- `concise`: force concise notification text for this watcher
+- `debug`: force debug envelope output for this watcher
+
+Precedence: **watcher override > global setting**.
+
+### Migration notes
+
+- Existing installs keep default behavior (`concise`) unless you set `notificationPayloadMode` explicitly.
+- If you want callback-only operation (wake LLM loop via `/hooks/sentinel` but no delivery-target chat message), set global or per-watcher mode to `none`.
 
 ## Runtime controls
 
