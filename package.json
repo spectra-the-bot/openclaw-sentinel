@@ -9,11 +9,11 @@
     "sentinel",
     "watcher"
   ],
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/coffeexcoin/openclaw-sentinel.git"
   },
-  "license": "MIT",
   "bin": {
     "openclaw-sentinel": "dist/cli.js"
   },
