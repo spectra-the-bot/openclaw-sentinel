@@ -84,16 +84,48 @@ describe("runtime sentinel callback e2e", () => {
       { cwd: repoRoot, stdio: ["ignore", "pipe", "pipe"] },
     );
 
+    let stdoutLog = "";
+    let stderrLog = "";
+    let exitCode: number | null = null;
+    let exitSignal: NodeJS.Signals | null = null;
+    let spawnError: string | null = null;
+
+    child.stdout?.on("data", (chunk) => {
+      stdoutLog = (stdoutLog + String(chunk)).slice(-8_000);
+    });
+    child.stderr?.on("data", (chunk) => {
+      stderrLog = (stderrLog + String(chunk)).slice(-8_000);
+    });
+    child.on("exit", (code, signal) => {
+      exitCode = code;
+      exitSignal = signal;
+    });
+    child.on("error", (err) => {
+      spawnError = err.message;
+    });
+
     spawned.push({
       kill: () => {
         child.kill("SIGTERM");
       },
     });
 
-    await waitFor(async () => {
-      const res = await fetch(`http://127.0.0.1:${port}/health`);
-      return res.ok;
-    });
+    try {
+      await waitFor(async () => {
+        const res = await fetch(`http://127.0.0.1:${port}/health`);
+        return res.ok;
+      }, 45_000);
+    } catch {
+      throw new Error(
+        [
+          "Timed out waiting for OpenClaw gateway health endpoint",
+          `spawnError=${spawnError ?? "none"}`,
+          `exitCode=${exitCode ?? "null"} exitSignal=${exitSignal ?? "null"}`,
+          `stdoutTail=${JSON.stringify(stdoutLog)}`,
+          `stderrTail=${JSON.stringify(stderrLog)}`,
+        ].join("\n"),
+      );
+    }
 
     const payload = {
       type: "sentinel.callback",
